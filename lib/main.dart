@@ -9,9 +9,9 @@ String res;
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   res = await Tflite.loadModel(
-    model: "assets/mobilenet.tflite",
-    labels: "assets/mobilenet.txt",
-  );
+      model: "assets/model-meme.tflite",
+      labels: "assets/labels-meme.txt",
+      numThreads: 4);
   cameras = await availableCameras();
   runApp(MyApp());
 }
@@ -26,7 +26,7 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   CameraController controller;
   bool isDetecting = false;
-  List<dynamic> preds = ['cat', 'dog', 'chicken'];
+  List<dynamic> preds = [];
 
   @override
   void initState() {
@@ -63,6 +63,7 @@ class _MyAppState extends State<MyApp> {
   @override
   void dispose() {
     controller?.dispose();
+    Tflite.close();
     super.dispose();
   }
 
@@ -75,7 +76,7 @@ class _MyAppState extends State<MyApp> {
       ),
       home: Scaffold(
         appBar: AppBar(
-          title: Text("Mobilenet Realtime Demo"),
+          title: Text("Meme Classifier"),
         ),
         body: controller.value.isInitialized
             ? MainScreen(controller: controller, preds: preds)
@@ -111,19 +112,28 @@ class MainScreen extends StatelessWidget {
               aspectRatio: controller.value.aspectRatio,
               child: CameraPreview(controller)),
         ),
-        Expanded(
-            child: ListView.builder(
-                padding: const EdgeInsets.all(8),
-                itemCount: preds.length,
-                itemBuilder: (BuildContext context, int index) {
-                  return Container(
-                    height: 50,
-                    color: Colors.amber,
-                    child: Center(
-                        child: Text(
-                            '${preds[index]['label']} ${preds[index]['confidence']}')),
-                  );
-                }))
+        preds.length > 0
+            ? Expanded(
+                child: ListView.builder(
+                    padding: const EdgeInsets.all(8),
+                    itemCount: preds.length,
+                    itemBuilder: (BuildContext context, int index) {
+                      return Container(
+                        height: 50,
+                        color: Colors.amber,
+                        child: Center(
+                            child: Text(
+                          '${preds[index]['label']} ${preds[index]['confidence']}',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 25,
+                              wordSpacing: 25),
+                        )),
+                      );
+                    }))
+            : Center(
+                child: Text('Loading'),
+              )
       ],
     ));
   }
